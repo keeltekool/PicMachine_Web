@@ -88,31 +88,38 @@ async function handleSignup() {
 
   showLoading();
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
+  try {
+    console.log('Starting signup...');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+    console.log('Signup finished:', { data, error });
 
-  hideLoading();
+    hideLoading();
 
-  if (error) {
-    authError.textContent = error.message;
-    return;
-  }
+    if (error) {
+      authError.textContent = error.message;
+      return;
+    }
 
-  // Check if user needs email confirmation
-  if (data.user && data.user.identities && data.user.identities.length === 0) {
-    authError.textContent = 'This email is already registered. Try logging in.';
-    return;
-  }
+    // Check if user needs email confirmation
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      authError.textContent = 'This email is already registered. Try logging in.';
+      return;
+    }
 
-  // Check if session exists (means no email confirmation needed)
-  if (data.session) {
-    currentUser = data.user;
-    showDashboard();
-  } else {
-    // Email confirmation might still be required
-    authError.textContent = 'Account created! You can now log in.';
+    // Check if session exists (means no email confirmation needed)
+    if (data.session) {
+      currentUser = data.user;
+      showDashboard();
+    } else {
+      authError.textContent = 'Account created! You can now log in.';
+    }
+  } catch (err) {
+    console.error('Signup crashed:', err);
+    hideLoading();
+    authError.textContent = 'Error: ' + err.message;
   }
 }
 
