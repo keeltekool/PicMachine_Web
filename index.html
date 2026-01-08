@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PicMachine</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- Auth Screen: Login/Sign Up -->
+  <div id="auth-screen">
+    <div class="auth-content">
+      <h1>PicMachine</h1>
+      <p>Cloud image viewer</p>
+
+      <form id="auth-form">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit" id="login-btn">Log In</button>
+        <button type="button" id="signup-btn">Sign Up</button>
+      </form>
+
+      <p id="auth-error" class="error-message"></p>
+    </div>
+  </div>
+
+  <!-- Dashboard: Upload & Start -->
+  <div id="dashboard" class="hidden">
+    <div class="dashboard-content">
+      <div class="dashboard-header">
+        <h1>PicMachine</h1>
+        <button id="logout-btn" class="logout-btn">Log Out</button>
+      </div>
+
+      <div class="upload-section">
+        <p id="image-count">0 images in your collection</p>
+        <label for="file-input" class="upload-btn">
+          Upload Images
+          <input type="file" id="file-input" accept="image/*" multiple>
+        </label>
+        <div id="upload-progress" class="hidden">
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <p id="progress-text">Uploading...</p>
+        </div>
+      </div>
+
+      <button id="start-viewer-btn" class="start-btn">Start Viewing</button>
+      <p class="hint">Arrow keys to navigate, ESC to exit, D to delete</p>
+    </div>
+  </div>
+
+  <!-- Image Viewer -->
+  <div id="viewer" class="hidden">
+    <img id="current-image" src="" alt="Image">
+    <div id="counter"></div>
+    <button id="delete-btn" class="delete-btn" title="Delete image (D)">🗑</button>
+    <button id="back-btn" class="nav-btn back-btn" title="Previous (←)">‹</button>
+    <button id="next-btn" class="nav-btn next-btn" title="Next (→)">›</button>
+    <button id="viewer-exit-btn" class="viewer-exit-btn" title="Exit (ESC)">✕</button>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading" class="hidden">
+    <div class="loader"></div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal hidden">
+    <div class="modal-content">
+      <p>Delete this image?</p>
+      <div class="modal-buttons">
+        <button id="confirm-delete" class="confirm-btn">Delete</button>
+        <button id="cancel-delete" class="cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="supabase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
