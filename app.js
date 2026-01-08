@@ -176,12 +176,21 @@ async function loadUserImages() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
   });
 
-  // Get public URLs for each image
-  images = imageFiles.map(file => ({
-    name: file.name,
-    path: `${currentUser.id}/${file.name}`,
-    url: supabaseClient.storage.from('images').getPublicUrl(`${currentUser.id}/${file.name}`).data.publicUrl
-  }));
+  // Get signed URLs for each image (private, expires in 1 hour)
+  images = [];
+  for (const file of imageFiles) {
+    const { data: signedData } = await supabaseClient.storage
+      .from('images')
+      .createSignedUrl(`${currentUser.id}/${file.name}`, 3600); // 1 hour expiry
+
+    if (signedData) {
+      images.push({
+        name: file.name,
+        path: `${currentUser.id}/${file.name}`,
+        url: signedData.signedUrl
+      });
+    }
+  }
 
   updateImageCount();
 }
