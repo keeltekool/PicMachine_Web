@@ -29,11 +29,20 @@ const deleteModal = document.getElementById('delete-modal');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 const cancelDeleteBtn = document.getElementById('cancel-delete');
 
+const gallery = document.getElementById('gallery');
+const galleryGrid = document.getElementById('gallery-grid');
+const manageBtn = document.getElementById('manage-btn');
+const selectAllBtn = document.getElementById('select-all-btn');
+const deselectAllBtn = document.getElementById('deselect-all-btn');
+const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+
 // State
 let currentUser = null;
 let images = [];
 let shuffledImages = [];
 let currentIndex = 0;
+let selectedImages = new Set();
 
 // Zoom state
 let zoomLevel = 1;
@@ -440,6 +449,121 @@ async function deleteCurrentImage() {
   }
 }
 
+// ==================== GALLERY (MASS DELETE) ====================
+
+function showGallery() {
+  dashboard.classList.add('hidden');
+  gallery.classList.remove('hidden');
+  selectedImages.clear();
+  renderGallery();
+  updateDeleteButton();
+}
+
+function hideGallery() {
+  gallery.classList.add('hidden');
+  dashboard.classList.remove('hidden');
+  selectedImages.clear();
+}
+
+function renderGallery() {
+  galleryGrid.innerHTML = '';
+
+  images.forEach((image) => {
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    item.dataset.path = image.path;
+
+    const img = document.createElement('img');
+    img.src = image.url;
+    img.alt = image.name;
+    img.loading = 'lazy';
+
+    const checkbox = document.createElement('div');
+    checkbox.className = 'checkbox';
+
+    item.appendChild(img);
+    item.appendChild(checkbox);
+
+    item.addEventListener('click', () => toggleSelection(image.path, item));
+
+    galleryGrid.appendChild(item);
+  });
+}
+
+function toggleSelection(path, element) {
+  if (selectedImages.has(path)) {
+    selectedImages.delete(path);
+    element.classList.remove('selected');
+  } else {
+    selectedImages.add(path);
+    element.classList.add('selected');
+  }
+  updateDeleteButton();
+}
+
+function selectAll() {
+  images.forEach(image => selectedImages.add(image.path));
+  document.querySelectorAll('.gallery-item').forEach(item => {
+    item.classList.add('selected');
+  });
+  updateDeleteButton();
+}
+
+function deselectAll() {
+  selectedImages.clear();
+  document.querySelectorAll('.gallery-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  updateDeleteButton();
+}
+
+function updateDeleteButton() {
+  const count = selectedImages.size;
+  deleteSelectedBtn.textContent = `Delete Selected (${count})`;
+  deleteSelectedBtn.disabled = count === 0;
+}
+
+async function deleteSelectedImages() {
+  if (selectedImages.size === 0) return;
+
+  const count = selectedImages.size;
+  if (!confirm(`Delete ${count} image${count > 1 ? 's' : ''}? This cannot be undone.`)) {
+    return;
+  }
+
+  showLoading();
+
+  const pathsToDelete = Array.from(selectedImages);
+
+  const { error } = await supabaseClient.storage
+    .from('images')
+    .remove(pathsToDelete);
+
+  if (error) {
+    console.error('Delete error:', error);
+    hideLoading();
+    alert('Error deleting some images. Please try again.');
+    return;
+  }
+
+  // Remove from local arrays
+  images = images.filter(img => !selectedImages.has(img.path));
+  shuffledImages = shuffledImages.filter(img => !selectedImages.has(img.path));
+
+  selectedImages.clear();
+
+  hideLoading();
+
+  if (images.length === 0) {
+    hideGallery();
+    updateImageCount();
+  } else {
+    renderGallery();
+    updateDeleteButton();
+    updateImageCount();
+  }
+}
+
 // ==================== FULLSCREEN ====================
 
 function toggleFullscreen() {
@@ -471,6 +595,13 @@ logoutBtn.addEventListener('click', handleLogout);
 
 // Upload
 fileInput.addEventListener('change', handleUpload);
+
+// Gallery
+manageBtn.addEventListener('click', showGallery);
+backToDashboardBtn.addEventListener('click', hideGallery);
+selectAllBtn.addEventListener('click', selectAll);
+deselectAllBtn.addEventListener('click', deselectAll);
+deleteSelectedBtn.addEventListener('click', deleteSelectedImages);
 
 // Viewer
 startViewerBtn.addEventListener('click', startViewer);

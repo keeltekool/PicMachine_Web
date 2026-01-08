@@ -48,9 +48,26 @@
         </div>
       </div>
 
-      <button id="start-viewer-btn" class="start-btn">Start Viewing</button>
+      <div class="action-buttons">
+        <button id="start-viewer-btn" class="start-btn">Start Viewing</button>
+        <button id="manage-btn" class="manage-btn">Manage Images</button>
+      </div>
       <p class="hint">Arrow keys to navigate, ESC to exit, D to delete</p>
     </div>
+  </div>
+
+  <!-- Gallery for Mass Delete -->
+  <div id="gallery" class="hidden">
+    <div class="gallery-header">
+      <h1>Manage Images</h1>
+      <div class="gallery-actions">
+        <button id="select-all-btn" class="gallery-btn">Select All</button>
+        <button id="deselect-all-btn" class="gallery-btn">Deselect All</button>
+        <button id="delete-selected-btn" class="gallery-btn delete-btn-action" disabled>Delete Selected (0)</button>
+        <button id="back-to-dashboard-btn" class="gallery-btn back-btn-action">Back</button>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
   </div>
 
   <!-- Image Viewer -->
@@ -79,7 +96,7 @@
     </div>
   </div>
 
-  <script src="supabase-config.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
