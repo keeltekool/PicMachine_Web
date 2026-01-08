@@ -54,7 +54,7 @@ async function handleLogin(e) {
 
   showLoading();
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -90,7 +90,7 @@ async function handleSignup() {
 
   try {
     console.log('Starting signup...');
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
       email,
       password
     });
@@ -124,7 +124,7 @@ async function handleSignup() {
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   currentUser = null;
   images = [];
   shuffledImages = [];
@@ -134,7 +134,7 @@ async function handleLogout() {
 }
 
 async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
 
   if (session) {
     currentUser = session.user;
@@ -155,7 +155,7 @@ async function loadUserImages() {
 
   showLoading();
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseClient.storage
     .from('images')
     .list(currentUser.id, {
       limit: 1000,
@@ -180,7 +180,7 @@ async function loadUserImages() {
   images = imageFiles.map(file => ({
     name: file.name,
     path: `${currentUser.id}/${file.name}`,
-    url: supabase.storage.from('images').getPublicUrl(`${currentUser.id}/${file.name}`).data.publicUrl
+    url: supabaseClient.storage.from('images').getPublicUrl(`${currentUser.id}/${file.name}`).data.publicUrl
   }));
 
   updateImageCount();
@@ -210,7 +210,7 @@ async function handleUpload(e) {
     const fileName = `${Date.now()}_${file.name}`;
     const filePath = `${currentUser.id}/${fileName}`;
 
-    const { error } = await supabase.storage
+    const { error } = await supabaseClient.storage
       .from('images')
       .upload(filePath, file);
 
@@ -402,7 +402,7 @@ async function deleteCurrentImage() {
   hideDeleteModal();
   showLoading();
 
-  const { error } = await supabase.storage
+  const { error } = await supabaseClient.storage
     .from('images')
     .remove([image.path]);
 
