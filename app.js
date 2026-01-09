@@ -52,6 +52,13 @@ let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 
+// Touch swipe state (iOS)
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+let isSwiping = false;
+
 // ==================== AUTH ====================
 
 async function handleLogin(e) {
@@ -399,10 +406,43 @@ currentImage.addEventListener('dblclick', (e) => {
 
 // Click on image to go to next (only if not zoomed)
 viewer.addEventListener('click', (e) => {
-  if (e.target === currentImage && zoomLevel === 1 && !isDragging) {
+  if (e.target === currentImage && zoomLevel === 1 && !isDragging && !isSwiping) {
     nextImage();
   }
 });
+
+// ==================== TOUCH SWIPE (iOS) ====================
+
+viewer.addEventListener('touchstart', (e) => {
+  if (zoomLevel > 1) return;
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+  isSwiping = false;
+}, { passive: true });
+
+viewer.addEventListener('touchmove', (e) => {
+  if (zoomLevel > 1) return;
+  touchEndX = e.changedTouches[0].screenX;
+  touchEndY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+viewer.addEventListener('touchend', (e) => {
+  if (zoomLevel > 1) return;
+  touchEndX = e.changedTouches[0].screenX;
+  touchEndY = e.changedTouches[0].screenY;
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+  const minSwipeDistance = 50;
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+    isSwiping = true;
+    if (deltaX > 0) {
+      prevImage();
+    } else {
+      nextImage();
+    }
+  }
+  setTimeout(() => { isSwiping = false; }, 100);
+}, { passive: true });
 
 // ==================== DELETE ====================
 
