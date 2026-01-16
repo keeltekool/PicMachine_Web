@@ -241,7 +241,7 @@ async function loadUserImages() {
 }
 
 function updateImageCount() {
-  imageCount.textContent = `${images.length} image${images.length !== 1 ? 's' : ''} in your collection`;
+  imageCount.textContent = images.length;
   startViewerBtn.disabled = images.length === 0;
 }
 
