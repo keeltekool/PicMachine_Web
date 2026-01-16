@@ -2,6 +2,9 @@
 const themeToggle = document.getElementById('theme-toggle');
 const sunIcon = document.getElementById('sun-icon');
 const moonIcon = document.getElementById('moon-icon');
+const fullscreenToggle = document.getElementById('fullscreen-toggle');
+const expandIcon = document.getElementById('expand-icon');
+const shrinkIcon = document.getElementById('shrink-icon');
 const authScreen = document.getElementById('auth-screen');
 const authForm = document.getElementById('auth-form');
 const emailInput = document.getElementById('email');
@@ -642,6 +645,15 @@ function toggleFullscreen() {
   }
 }
 
+function updateFullscreenIcon() {
+  const isFullscreen = !!document.fullscreenElement;
+  expandIcon.classList.toggle('hidden', isFullscreen);
+  shrinkIcon.classList.toggle('hidden', !isFullscreen);
+}
+
+// Listen for fullscreen changes
+document.addEventListener('fullscreenchange', updateFullscreenIcon);
+
 // ==================== LOADING ====================
 
 function showLoading() {
@@ -733,6 +745,9 @@ document.addEventListener('keydown', (e) => {
 
 // Theme
 themeToggle.addEventListener('click', toggleTheme);
+
+// Fullscreen
+fullscreenToggle.addEventListener('click', toggleFullscreen);
 
 // Init
 initTheme();

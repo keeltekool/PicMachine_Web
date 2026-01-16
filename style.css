@@ -76,6 +76,35 @@ body {
   height: 18px;
 }
 
+/* Fullscreen Toggle */
+.fullscreen-toggle {
+  position: fixed;
+  top: 20px;
+  right: 70px;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.fullscreen-toggle:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.fullscreen-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Auth Screen */
 #auth-screen {
   display: flex;
