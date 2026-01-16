@@ -132,6 +132,69 @@ body {
   min-height: 100vh;
   padding: 24px;
   background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative background images */
+.auth-bg-image {
+  position: absolute;
+  border-radius: 24px;
+  opacity: 0.08;
+  filter: blur(1px) saturate(0.8);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  object-fit: cover;
+}
+
+body.dark .auth-bg-image {
+  opacity: 0.06;
+  filter: blur(1px) saturate(0.6);
+}
+
+.auth-bg-1 {
+  width: 280px;
+  height: 200px;
+  top: 8%;
+  left: 5%;
+  transform: rotate(-6deg);
+}
+
+.auth-bg-2 {
+  width: 220px;
+  height: 160px;
+  top: 12%;
+  right: 8%;
+  transform: rotate(4deg);
+}
+
+.auth-bg-3 {
+  width: 240px;
+  height: 180px;
+  bottom: 15%;
+  right: 6%;
+  transform: rotate(-3deg);
+}
+
+.auth-bg-4 {
+  width: 200px;
+  height: 150px;
+  bottom: 10%;
+  left: 8%;
+  transform: rotate(5deg);
+}
+
+@media (max-width: 900px) {
+  .auth-bg-image {
+    opacity: 0.05;
+  }
+  .auth-bg-1, .auth-bg-2 {
+    width: 160px;
+    height: 120px;
+  }
+  .auth-bg-3, .auth-bg-4 {
+    display: none;
+  }
 }
 
 .auth-content {
