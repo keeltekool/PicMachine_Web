@@ -1,4 +1,7 @@
 // DOM Elements
+const themeToggle = document.getElementById('theme-toggle');
+const sunIcon = document.getElementById('sun-icon');
+const moonIcon = document.getElementById('moon-icon');
 const authScreen = document.getElementById('auth-screen');
 const authForm = document.getElementById('auth-form');
 const emailInput = document.getElementById('email');
@@ -58,6 +61,29 @@ let touchStartY = 0;
 let touchEndX = 0;
 let touchEndY = 0;
 let isSwiping = false;
+
+// Theme state
+let isDarkMode = false;
+
+// ==================== THEME ====================
+
+function toggleTheme() {
+  isDarkMode = !isDarkMode;
+  document.body.classList.toggle('dark', isDarkMode);
+  sunIcon.classList.toggle('hidden', isDarkMode);
+  moonIcon.classList.toggle('hidden', !isDarkMode);
+  localStorage.setItem('picmachine-theme', isDarkMode ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('picmachine-theme');
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    isDarkMode = true;
+    document.body.classList.add('dark');
+    sunIcon.classList.add('hidden');
+    moonIcon.classList.remove('hidden');
+  }
+}
 
 // ==================== AUTH ====================
 
@@ -705,5 +731,9 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Theme
+themeToggle.addEventListener('click', toggleTheme);
+
 // Init
+initTheme();
 checkAuth();
