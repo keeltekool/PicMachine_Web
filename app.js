@@ -207,11 +207,10 @@ async function loadUserImages() {
       sortBy: { column: 'created_at', order: 'desc' }
     });
 
-  hideLoading();
-
   if (error) {
     console.error('Error loading images:', error);
-    imageCount.textContent = 'Error loading images';
+    imageCount.textContent = '!';
+    hideLoading();
     return;
   }
 
@@ -220,6 +219,10 @@ async function loadUserImages() {
     const ext = file.name.split('.').pop().toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
   });
+
+  // Show count immediately from file list
+  imageCount.textContent = imageFiles.length;
+  startViewerBtn.disabled = imageFiles.length === 0;
 
   // Get signed URLs for each image (private, expires in 1 hour)
   images = [];
@@ -237,6 +240,7 @@ async function loadUserImages() {
     }
   }
 
+  hideLoading();
   updateImageCount();
 }
 
