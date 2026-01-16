@@ -152,11 +152,17 @@ body {
   margin-bottom: 8px;
 }
 
-.auth-content > p {
+.auth-content .tagline {
   font-size: 15px;
+  line-height: 1.6;
   color: var(--text-secondary);
   text-align: center;
   margin-bottom: 32px;
+}
+
+.auth-content .tagline-sub {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 #auth-form {
