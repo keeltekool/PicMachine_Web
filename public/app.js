@@ -6,11 +6,6 @@ const fullscreenToggle = document.getElementById('fullscreen-toggle');
 const expandIcon = document.getElementById('expand-icon');
 const shrinkIcon = document.getElementById('shrink-icon');
 const authScreen = document.getElementById('auth-screen');
-const authForm = document.getElementById('auth-form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const loginBtn = document.getElementById('login-btn');
-const signupBtn = document.getElementById('signup-btn');
 const authError = document.getElementById('auth-error');
 
 const dashboard = document.getElementById('dashboard');
@@ -68,6 +63,35 @@ let isSwiping = false;
 // Theme state
 let isDarkMode = false;
 
+// ==================== API HELPER ====================
+
+async function getAuthToken() {
+  const session = window.Clerk.session;
+  if (!session) return null;
+  return session.getToken();
+}
+
+async function apiFetch(path, options = {}) {
+  const token = await getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `API error ${res.status}`);
+  }
+
+  return res.json();
+}
+
 // ==================== THEME ====================
 
 function toggleTheme() {
@@ -88,103 +112,55 @@ function initTheme() {
   }
 }
 
-// ==================== AUTH ====================
+// ==================== AUTH (CLERK) ====================
 
-async function handleLogin(e) {
-  e.preventDefault();
-  authError.textContent = '';
+async function initClerk() {
+  // Wait for Clerk to be ready
+  await window.Clerk.load();
 
-  const email = emailInput.value;
-  const password = passwordInput.value;
-
-  showLoading();
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  hideLoading();
-
-  if (error) {
-    authError.textContent = error.message;
-    return;
-  }
-
-  currentUser = data.user;
-  showDashboard();
-}
-
-async function handleSignup() {
-  authError.textContent = '';
-
-  const email = emailInput.value;
-  const password = passwordInput.value;
-
-  if (!email || !password) {
-    authError.textContent = 'Please enter email and password';
-    return;
-  }
-
-  if (password.length < 6) {
-    authError.textContent = 'Password must be at least 6 characters';
-    return;
-  }
-
-  showLoading();
-
-  try {
-    console.log('Starting signup...');
-    const { data, error } = await supabaseClient.auth.signUp({
-      email,
-      password
+  if (window.Clerk.user) {
+    // Already signed in
+    currentUser = window.Clerk.user;
+    showDashboard();
+  } else {
+    // Mount Clerk sign-in UI
+    window.Clerk.mountSignIn(document.getElementById('clerk-auth'), {
+      appearance: {
+        variables: {
+          colorPrimary: isDarkMode ? '#fafafa' : '#0a0a0a',
+          colorBackground: isDarkMode ? '#18181b' : '#ffffff',
+          colorText: isDarkMode ? '#fafafa' : '#0a0a0a',
+          colorInputBackground: isDarkMode ? '#09090b' : '#fafafa',
+          colorInputText: isDarkMode ? '#fafafa' : '#0a0a0a',
+          borderRadius: '10px',
+        },
+      },
     });
-    console.log('Signup finished:', { data, error });
+  }
 
-    hideLoading();
-
-    if (error) {
-      authError.textContent = error.message;
-      return;
-    }
-
-    // Check if user needs email confirmation
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
-      authError.textContent = 'This email is already registered. Try logging in.';
-      return;
-    }
-
-    // Check if session exists (means no email confirmation needed)
-    if (data.session) {
-      currentUser = data.user;
+  // Listen for auth state changes
+  window.Clerk.addListener(({ user }) => {
+    if (user) {
+      currentUser = user;
+      // Unmount sign-in if mounted
+      window.Clerk.unmountSignIn(document.getElementById('clerk-auth'));
       showDashboard();
     } else {
-      authError.textContent = 'Account created! You can now log in.';
+      currentUser = null;
+      images = [];
+      shuffledImages = [];
+      authScreen.classList.remove('hidden');
+      dashboard.classList.add('hidden');
+      viewer.classList.add('hidden');
+      gallery.classList.add('hidden');
+      // Re-mount sign-in
+      window.Clerk.mountSignIn(document.getElementById('clerk-auth'));
     }
-  } catch (err) {
-    console.error('Signup crashed:', err);
-    hideLoading();
-    authError.textContent = 'Error: ' + err.message;
-  }
+  });
 }
 
 async function handleLogout() {
-  await supabaseClient.auth.signOut();
-  currentUser = null;
-  images = [];
-  shuffledImages = [];
-  authScreen.classList.remove('hidden');
-  dashboard.classList.add('hidden');
-  viewer.classList.add('hidden');
-}
-
-async function checkAuth() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-
-  if (session) {
-    currentUser = session.user;
-    showDashboard();
-  }
+  await window.Clerk.signOut();
 }
 
 // ==================== DASHBOARD ====================
@@ -200,48 +176,23 @@ async function loadUserImages() {
 
   showLoading();
 
-  const { data, error } = await supabaseClient.storage
-    .from('images')
-    .list(currentUser.id, {
-      limit: 1000,
-      sortBy: { column: 'created_at', order: 'desc' }
-    });
+  try {
+    const data = await apiFetch('/api/images');
 
-  if (error) {
-    console.error('Error loading images:', error);
+    images = data.images.map(img => ({
+      name: img.name,
+      key: img.key,
+      url: img.url,
+    }));
+
+    imageCount.textContent = data.count;
+    startViewerBtn.disabled = images.length === 0;
+  } catch (err) {
+    console.error('Error loading images:', err);
     imageCount.textContent = '!';
-    hideLoading();
-    return;
-  }
-
-  // Filter for image files only
-  const imageFiles = data.filter(file => {
-    const ext = file.name.split('.').pop().toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
-  });
-
-  // Show count immediately from file list
-  imageCount.textContent = imageFiles.length;
-  startViewerBtn.disabled = imageFiles.length === 0;
-
-  // Get signed URLs for each image (private, expires in 1 hour)
-  images = [];
-  for (const file of imageFiles) {
-    const { data: signedData } = await supabaseClient.storage
-      .from('images')
-      .createSignedUrl(`${currentUser.id}/${file.name}`, 3600); // 1 hour expiry
-
-    if (signedData) {
-      images.push({
-        name: file.name,
-        path: `${currentUser.id}/${file.name}`,
-        url: signedData.signedUrl
-      });
-    }
   }
 
   hideLoading();
-  updateImageCount();
 }
 
 function updateImageCount() {
@@ -265,17 +216,30 @@ async function handleUpload(e) {
     // Check if it's an image
     if (!file.type.startsWith('image/')) continue;
 
-    const fileName = `${Date.now()}_${file.name}`;
-    const filePath = `${currentUser.id}/${fileName}`;
+    try {
+      // 1. Get presigned upload URL from our API
+      const { uploadUrl } = await apiFetch('/api/images', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
 
-    const { error } = await supabaseClient.storage
-      .from('images')
-      .upload(filePath, file);
+      // 2. Upload directly to R2 via presigned URL
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
 
-    if (error) {
-      console.error('Upload error:', error);
-    } else {
-      uploaded++;
+      if (uploadRes.ok) {
+        uploaded++;
+      } else {
+        console.error('Upload to R2 failed:', uploadRes.status);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
     }
 
     // Update progress
@@ -493,32 +457,31 @@ async function deleteCurrentImage() {
   hideDeleteModal();
   showLoading();
 
-  const { error } = await supabaseClient.storage
-    .from('images')
-    .remove([image.path]);
+  try {
+    await apiFetch(`/api/images/${encodeURIComponent(image.key)}`, {
+      method: 'DELETE',
+    });
 
-  if (error) {
-    console.error('Delete error:', error);
+    // Remove from arrays
+    images = images.filter(img => img.key !== image.key);
+    shuffledImages = shuffledImages.filter(img => img.key !== image.key);
+
+    // Adjust index if needed
+    if (currentIndex >= shuffledImages.length) {
+      currentIndex = 0;
+    }
+
     hideLoading();
-    return;
-  }
 
-  // Remove from arrays
-  images = images.filter(img => img.path !== image.path);
-  shuffledImages = shuffledImages.filter(img => img.path !== image.path);
-
-  // Adjust index if needed
-  if (currentIndex >= shuffledImages.length) {
-    currentIndex = 0;
-  }
-
-  hideLoading();
-
-  if (shuffledImages.length === 0) {
-    exitViewer();
-    loadUserImages();
-  } else {
-    displayImage();
+    if (shuffledImages.length === 0) {
+      exitViewer();
+      loadUserImages();
+    } else {
+      displayImage();
+    }
+  } catch (err) {
+    console.error('Delete error:', err);
+    hideLoading();
   }
 }
 
@@ -544,7 +507,7 @@ function renderGallery() {
   images.forEach((image) => {
     const item = document.createElement('div');
     item.className = 'gallery-item';
-    item.dataset.path = image.path;
+    item.dataset.key = image.key;
 
     const img = document.createElement('img');
     img.src = image.url;
@@ -557,25 +520,25 @@ function renderGallery() {
     item.appendChild(img);
     item.appendChild(checkbox);
 
-    item.addEventListener('click', () => toggleSelection(image.path, item));
+    item.addEventListener('click', () => toggleSelection(image.key, item));
 
     galleryGrid.appendChild(item);
   });
 }
 
-function toggleSelection(path, element) {
-  if (selectedImages.has(path)) {
-    selectedImages.delete(path);
+function toggleSelection(key, element) {
+  if (selectedImages.has(key)) {
+    selectedImages.delete(key);
     element.classList.remove('selected');
   } else {
-    selectedImages.add(path);
+    selectedImages.add(key);
     element.classList.add('selected');
   }
   updateDeleteButton();
 }
 
 function selectAll() {
-  images.forEach(image => selectedImages.add(image.path));
+  images.forEach(image => selectedImages.add(image.key));
   document.querySelectorAll('.gallery-item').forEach(item => {
     item.classList.add('selected');
   });
@@ -606,34 +569,33 @@ async function deleteSelectedImages() {
 
   showLoading();
 
-  const pathsToDelete = Array.from(selectedImages);
+  try {
+    const keysToDelete = Array.from(selectedImages);
 
-  const { error } = await supabaseClient.storage
-    .from('images')
-    .remove(pathsToDelete);
+    await apiFetch(`/api/images?keys=${encodeURIComponent(keysToDelete.join(','))}`, {
+      method: 'DELETE',
+    });
 
-  if (error) {
-    console.error('Delete error:', error);
+    // Remove from local arrays
+    images = images.filter(img => !selectedImages.has(img.key));
+    shuffledImages = shuffledImages.filter(img => !selectedImages.has(img.key));
+
+    selectedImages.clear();
+
+    hideLoading();
+
+    if (images.length === 0) {
+      hideGallery();
+      updateImageCount();
+    } else {
+      renderGallery();
+      updateDeleteButton();
+      updateImageCount();
+    }
+  } catch (err) {
+    console.error('Delete error:', err);
     hideLoading();
     alert('Error deleting some images. Please try again.');
-    return;
-  }
-
-  // Remove from local arrays
-  images = images.filter(img => !selectedImages.has(img.path));
-  shuffledImages = shuffledImages.filter(img => !selectedImages.has(img.path));
-
-  selectedImages.clear();
-
-  hideLoading();
-
-  if (images.length === 0) {
-    hideGallery();
-    updateImageCount();
-  } else {
-    renderGallery();
-    updateDeleteButton();
-    updateImageCount();
   }
 }
 
@@ -671,8 +633,6 @@ function hideLoading() {
 // ==================== EVENT LISTENERS ====================
 
 // Auth
-authForm.addEventListener('submit', handleLogin);
-signupBtn.addEventListener('click', handleSignup);
 logoutBtn.addEventListener('click', handleLogout);
 
 // Upload
@@ -755,4 +715,4 @@ fullscreenToggle.addEventListener('click', toggleFullscreen);
 
 // Init
 initTheme();
-checkAuth();
+initClerk();
