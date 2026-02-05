@@ -28,9 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       return res.status(200).json({ images, count: images.length });
-    } catch (err: any) {
+    } catch (err) {
       console.error("List images error:", err);
-      return res.status(500).json({ error: "Failed to list images", debug: err?.message || String(err) });
+      return res.status(500).json({ error: "Failed to list images" });
     }
   }
 
