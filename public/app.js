@@ -75,13 +75,19 @@ async function apiFetch(path, options = {}) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
 
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+  };
+
+  // Only set Content-Type for requests with a body
+  if (options.body) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(path, {
     ...options,
-    headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!res.ok) {
@@ -114,8 +120,30 @@ function initTheme() {
 
 // ==================== AUTH (CLERK) ====================
 
+function waitForClerk() {
+  return new Promise((resolve) => {
+    if (window.Clerk) return resolve(window.Clerk);
+    const observer = new MutationObserver(() => {
+      if (window.Clerk) {
+        observer.disconnect();
+        resolve(window.Clerk);
+      }
+    });
+    observer.observe(document, { childList: true, subtree: true });
+    // Fallback poll in case MutationObserver misses it
+    const interval = setInterval(() => {
+      if (window.Clerk) {
+        clearInterval(interval);
+        observer.disconnect();
+        resolve(window.Clerk);
+      }
+    }, 100);
+  });
+}
+
 async function initClerk() {
-  // Wait for Clerk to be ready
+  // Wait for Clerk SDK to load (async script)
+  await waitForClerk();
   await window.Clerk.load();
 
   if (window.Clerk.user) {
