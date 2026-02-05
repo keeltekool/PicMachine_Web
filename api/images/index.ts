@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { authenticateRequest } from "../../lib/auth";
-import { listUserImages, getViewUrl, getUploadUrl, deleteImages } from "../../lib/r2";
+import { authenticateRequest } from "../../lib/auth.js";
+import { listUserImages, getViewUrl, getUploadUrl, deleteImages } from "../../lib/r2.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = await authenticateRequest(req);
